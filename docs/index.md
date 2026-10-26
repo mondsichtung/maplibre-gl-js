@@ -94,6 +94,13 @@ Pick your setup:
     const map = new Map({/* … */});
     ```
 
+    Use `?worker&url` rather than plain `?url`: the dist worker imports its
+    content-hashed sibling `maplibre-gl-shared-*.mjs`, and `?url` emits the
+    worker file verbatim in production builds without that sibling, so the
+    worker fails on its first import and no vector tiles load. `?worker&url` routes the file
+    through Vite's worker pipeline, emitting a self-contained chunk. Dev mode
+    works with either.
+
     If your build uses SSR (TanStack Start, Astro, etc.) and Vite resolves the CommonJS entry on the server, also add:
 
     ```ts title="vite.config.ts"
@@ -117,13 +124,13 @@ Pick your setup:
 
     rspack and rsbuild use the same pattern.
 
-    Next.js uses the same pattern too, including in its `next build --webpack` mode. See the Turbopack tab.
+    Next.js is an exception, including in its `next build --webpack` mode. See the Turbopack tab.
 
 === "esbuild"
 
     ```js title="build.js"
     import * as esbuild from 'esbuild';
-    import {copyFileSync} from 'fs';
+    import {copyFileSync, readdirSync} from 'fs';
 
     await esbuild.build({
         entryPoints: ['src/main.ts'],
@@ -132,10 +139,11 @@ Pick your setup:
         format: 'esm'
     });
 
-    copyFileSync(
-        'node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs',
-        'dist/maplibre-gl-worker.mjs'
-    );
+    // The worker imports the content-hashed shared chunk next to it.
+    const dist = 'node_modules/maplibre-gl/dist';
+    for (const file of readdirSync(dist).filter((name) => name === 'maplibre-gl-worker.mjs' || /^maplibre-gl-shared-.+\.mjs$/.test(name))) {
+        copyFileSync(`${dist}/${file}`, `dist/${file}`);
+    }
     ```
 
     ```ts title="src/main.ts"
@@ -158,7 +166,8 @@ Pick your setup:
         plugins: [
             copy({
                 targets: [
-                    {src: 'node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs', dest: 'dist'}
+                    {src: 'node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs', dest: 'dist'},
+                    {src: 'node_modules/maplibre-gl/dist/maplibre-gl-shared-*.mjs', dest: 'dist'}
                 ]
             }),
             /* ... */
@@ -181,20 +190,51 @@ Pick your setup:
 
     Turbopack ships as the default bundler in Next.js, which is where you are most likely to meet it, so the setup below is written for a Next.js app.
 
+    Turbopack turns `new URL('maplibre-gl/dist/maplibre-gl-worker.mjs', import.meta.url)` into a hashed asset without emitting the content-hashed `maplibre-gl-shared-*.mjs` chunk the worker imports. The worker then fails on its first import, and the map mounts but never requests a tile. Serve both files from `public/` instead and point `setWorkerUrl` at the worker:
+
+    ```js title="scripts/copy-maplibre-worker.mjs"
+    import {copyFileSync, mkdirSync, readdirSync} from 'node:fs';
+    import {createRequire} from 'node:module';
+    import path from 'node:path';
+
+    const dist = path.join(path.dirname(createRequire(import.meta.url).resolve('maplibre-gl/package.json')), 'dist');
+    const dest = path.join(process.cwd(), 'public', 'maplibre');
+
+    mkdirSync(dest, {recursive: true});
+    const shared = readdirSync(dist).filter((name) => /^maplibre-gl-shared-.+\.mjs$/.test(name));
+    for (const file of ['maplibre-gl-worker.mjs', ...shared]) {
+        copyFileSync(path.join(dist, file), path.join(dest, file));
+    }
+    ```
+
+    ```json title="package.json"
+    {
+        "scripts": {
+            "prebuild": "node ./scripts/copy-maplibre-worker.mjs",
+            "predev": "node ./scripts/copy-maplibre-worker.mjs"
+        }
+    }
+    ```
+
     ```ts title="app/map.tsx"
     'use client';
 
     import {Map, setWorkerUrl} from 'maplibre-gl';
     import 'maplibre-gl/dist/maplibre-gl.css';
 
-    setWorkerUrl(new URL('maplibre-gl/dist/maplibre-gl-worker.mjs', import.meta.url).toString());
+    setWorkerUrl('/maplibre/maplibre-gl-worker.mjs');
 
     const map = new Map({/* … */});
     ```
 
-    Next.js emits the worker as a hashed asset in both of its bundler modes, `next build` (Turbopack) and `next build --webpack`.
+    The script copies the shared chunk too, not just the worker.
+    This is because the worker imports `maplibre-gl-shared-*.mjs` by relative path, so both have to land in the same directory.
 
-    This needs Next.js 15 or later. In Next.js 14, `next build` fails to minify the worker, so copy `maplibre-gl-worker.mjs` to `public/` and pass that path to `setWorkerUrl` instead.
+    The copy happens at build time, from `node_modules`, so it always matches the installed version.
+    npm lifecycle prefixes match the exact script name, so `prebuild` and `predev` run before `build` and `dev`, but **not** before a custom script like `build:local` - add a matching `pre` hook for those if necessary.
+    `postinstall` alone won't do it since package managers skip lifecycle scripts when an install has no work to do, and `--ignore-scripts` skips them entirely.
+
+    Next.js needs this in both of its bundler modes, `next build` (Turbopack) and `next build --webpack`, since the asset handling above is Next's rather than Turbopack's alone.
 
 === "CDN / No bundler"
 

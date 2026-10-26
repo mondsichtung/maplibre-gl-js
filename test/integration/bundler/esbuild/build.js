@@ -1,7 +1,8 @@
 import * as esbuild from 'esbuild';
-import {copyFileSync, existsSync, mkdirSync} from 'fs';
+import {copyFileSync, existsSync, mkdirSync, readdirSync} from 'fs';
 
-const workerSrc = 'node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs';
+const distDir = 'node_modules/maplibre-gl/dist';
+const workerSrc = `${distDir}/maplibre-gl-worker.mjs`;
 
 if (!existsSync(workerSrc)) {
     console.error(
@@ -22,3 +23,7 @@ await esbuild.build({
 
 mkdirSync('dist', {recursive: true});
 copyFileSync(workerSrc, 'dist/maplibre-gl-worker.mjs');
+// The worker imports the content-hashed shared chunk next to it.
+for (const file of readdirSync(distDir).filter((name) => /^maplibre-gl-shared-.+\.mjs$/.test(name))) {
+    copyFileSync(`${distDir}/${file}`, `dist/${file}`);
+}
