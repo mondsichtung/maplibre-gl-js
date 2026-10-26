@@ -19,7 +19,7 @@ export default {
         copy({
             targets: [
                 {src: 'node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs', dest: 'dist'},
-                {src: 'node_modules/maplibre-gl/dist/maplibre-gl-shared-*.mjs', dest: 'dist'}
+                {src: 'node_modules/maplibre-gl/dist/maplibre-gl-{shared,vector-tile-mlt}-*.mjs', dest: 'dist'}
             ]
         })
     ]

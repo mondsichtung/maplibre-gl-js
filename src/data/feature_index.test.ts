@@ -9,6 +9,7 @@ import {CircleStyleLayer} from '../style/style_layer/circle_style_layer.ts';
 import Point from '@mapbox/point-geometry';
 import {CRSWorldCoordinateHelper, identityCrs} from '../geo/projection/crs.ts';
 import {createIdentityCrsTransform} from '../util/test/util.ts';
+import {loadMLTDecoder} from '../source/vector_tile_mlt_loader.ts';
 
 import type {LayerSpecification} from '@maplibre/maplibre-gl-style-spec';
 import type {EvaluationParameters} from '../style/evaluation_parameters.ts';
@@ -77,7 +78,8 @@ describe('FeatureIndex', () => {
             expect(result.layer[0].feature.properties).toEqual(features[0].tags);
         });
 
-        test('query mlt tile', () => {
+        test('query mlt tile', async () => {
+            await loadMLTDecoder();
             const layer = new CircleStyleLayer({source: 'source', paint: {}} as LayerSpecification, {});
             layer.recalculate({} as EvaluationParameters, []);
             const featureIndex = new FeatureIndex(tileID);

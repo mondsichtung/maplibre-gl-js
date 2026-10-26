@@ -1,14 +1,18 @@
 {
     "dist/maplibre-gl.mjs": {
-        "raw": 624147,
-        "gzip": 160403
+        "raw": 624157,
+        "gzip": 160406
     },
     "dist/maplibre-gl-worker.mjs": {
-        "raw": 21897,
-        "gzip": 7052
+        "raw": 21932,
+        "gzip": 7068
     },
     "dist/maplibre-gl-shared-*.mjs": {
-        "raw": 527770,
-        "gzip": 152002
+        "raw": 461162,
+        "gzip": 134375
+    },
+    "dist/maplibre-gl-vector-tile-mlt-*.mjs": {
+        "raw": 66634,
+        "gzip": 18019
     }
 }

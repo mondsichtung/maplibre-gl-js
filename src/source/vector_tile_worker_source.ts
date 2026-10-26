@@ -8,7 +8,7 @@ import {BoundedLRUCache} from '../tile/tile_cache.ts';
 import {ensureError, extend} from '../util/util.ts';
 import {RequestPerformance} from '../util/request_performance.ts';
 import {VectorTileOverzoomed, sliceVectorTileLayer} from './vector_tile_overzoomed.ts';
-import {MLTVectorTile} from './vector_tile_mlt.ts';
+import {decodeMLTTile, loadMLTDecoder} from './vector_tile_mlt_loader.ts';
 
 import type {
     WorkerSource,
@@ -51,7 +51,7 @@ export class VectorTileWorkerSource implements WorkerSource {
         try {
             const vectorTile = params.encoding !== 'mlt'
                 ? new VectorTile(new PbfReader(rawData))
-                : new MLTVectorTile(rawData);
+                : decodeMLTTile(rawData);
 
             return {vectorTile, rawData};
         } catch (ex) {
@@ -87,7 +87,10 @@ export class VectorTileWorkerSource implements WorkerSource {
         workerTile.abort = abortController;
         try {
             // Download the tile data from the network.
-            const tileResponse = await getArrayBuffer(params.request, abortController);
+            const [tileResponse] = await Promise.all([
+                getArrayBuffer(params.request, abortController),
+                params.encoding === 'mlt' && loadMLTDecoder()
+            ]);
 
             const loadedTile = this.tileState.getLoaded(uid);
             // Tile data hasn't changed (etag support) - return an unmodified result

@@ -11,12 +11,15 @@ import {RequestManager} from '../util/request_manager.ts';
 import fixturesSource from '../../test/unit/assets/source.json' with {type: 'json'};
 import {getMockDispatcher, getWrapDispatcher, sleep, waitForEvent, waitForMetadataEvent} from '../util/test/util.ts';
 import {type ActorMessage, MessageType} from '../util/actor_messages.ts';
+import {loadMLTDecoder} from './vector_tile_mlt_loader.ts';
 
 import type {Map} from '../ui/map.ts';
 import type {WorkerTileParameters} from './worker_source.ts';
 import type {Tile} from '../tile/tile.ts';
 import type {Source} from './source.ts';
 import type {MapSourceDataEvent} from '../ui/events.ts';
+
+vi.mock(import('./vector_tile_mlt_loader.ts'), () => ({loadMLTDecoder: vi.fn()}));
 
 class StubbedEvented extends Evented {}
 
@@ -291,6 +294,25 @@ describe('VectorTileSource', () => {
             setExpiryData() {}
         } as any as Tile;
         await expect(source.loadTile(tile)).rejects.toThrow('Error');
+        expect(tile.loadVectorData).toHaveBeenCalledTimes(0);
+    });
+
+    test('does not load an mlt tile when the mlt decoder fails to load', async () => {
+        vi.mocked(loadMLTDecoder).mockRejectedValueOnce(new Error('Failed to fetch dynamically imported module'));
+        const source = createSource({tiles: ['http://example.com/{z}/{x}/{y}.mlt'], encoding: 'mlt'});
+        source.dispatcher = getWrapDispatcher()({
+            sendAsync(_message) {
+                return Promise.resolve({});
+            }
+        });
+        await waitForMetadataEvent(source);
+        const tile = {
+            tileID: new OverscaledTileID(10, 0, 10, 5, 5),
+            state: 'loading',
+            loadVectorData: vi.fn(),
+            setExpiryData() {}
+        } as any as Tile;
+        await expect(source.loadTile(tile)).rejects.toThrow('Failed to fetch dynamically imported module');
         expect(tile.loadVectorData).toHaveBeenCalledTimes(0);
     });
 

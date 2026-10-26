@@ -3,7 +3,8 @@
 Minimal Vite 7 (Rollup/esbuild) app exercising the ESM build:
 
 - `import {Map} from 'maplibre-gl'` and `import 'maplibre-gl/dist/maplibre-gl.css'` resolve via the package's `exports` field.
-- `import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'` bundles the worker into a single file and returns the URL. `setWorkerUrl(workerUrl)` points MapLibre at it.
+- `import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'` bundles the worker and returns the URL. `setWorkerUrl(workerUrl)` points MapLibre at it.
+- `worker: {format: 'es'}` in `vite.config.ts`: the worker loads the MLT decoder on demand, and Vite 7 cannot split an `iife` worker.
 
 ## Setup
 

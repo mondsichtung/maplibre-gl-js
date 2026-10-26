@@ -29,7 +29,7 @@ module.exports = {
                     info: {minimized: true}
                 },
                 {
-                    from: 'node_modules/maplibre-gl/dist/maplibre-gl-shared-*.mjs',
+                    from: 'node_modules/maplibre-gl/dist/maplibre-gl-{shared,vector-tile-mlt}-*.mjs',
                     to: '[name][ext]',
                     info: {minimized: true}
                 }

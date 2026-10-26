@@ -15,9 +15,9 @@ const RAW_DECREASE_QUOTA = 4096;
 const GZIP_INCREASE_QUOTA = 256;
 const GZIP_DECREASE_QUOTA = 1024;
 
-/** Keys may be globs, for the shared chunk whose name carries a content hash; each must match one file. */
+/** Keys may be globs, for the chunks whose names carry a content hash; each must match one file. */
 function measure(pattern: string): SizeRecord {
-    const files = globSync(pattern, {ignore: ['dist/maplibre-gl-shared-dev.mjs', 'dist/maplibre-gl-shared-dev-*.mjs']});
+    const files = globSync(pattern, {ignore: ['dist/*-dev.mjs', 'dist/*-dev-*.mjs']});
     expect(files, pattern).toHaveLength(1);
     const buf = fs.readFileSync(files[0]);
     return {raw: buf.length, gzip: zlib.gzipSync(buf).length};

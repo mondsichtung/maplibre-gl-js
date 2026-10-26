@@ -520,6 +520,28 @@ describe('vector tile worker source', () => {
         await expect(promise).resolves.toBeNull();
     });
 
+    test('VectorTileWorkerSource.loadTile decodes an mlt tile', async () => {
+        const source = new VectorTileWorkerSource(actor, new StyleLayerIndex([]), []);
+        const rawTileData = new Uint8Array(fs.readFileSync(path.join(__dirname, '/../../test/integration/assets/tiles/mlt/5/17/10.mlt'))).buffer;
+        server.respondWith(request => {
+            request.respond(200, {'Content-Type': 'application/vnd.maplibre-tile'}, rawTileData as any);
+        });
+
+        const promise = source.loadTile({
+            source: 'source',
+            uid: 0,
+            tileID: new OverscaledTileID(5, 0, 5, 17, 10),
+            request: {url: 'http://localhost:2900/faketile.mlt'},
+            encoding: 'mlt',
+            subdivisionGranularity: SubdivisionGranularitySetting.noSubdivision,
+        } as any as WorkerTileParameters);
+
+        server.respond();
+        await promise;
+
+        expect(Object.keys(source.tileState.getLoaded(0).vectorTile.layers)).not.toHaveLength(0);
+    });
+
     test('VectorTileWorkerSource.returns a good error message when failing to parse a tile', async () => {
         const source = new VectorTileWorkerSource(actor, new StyleLayerIndex(), []);
         const parse = vi.fn();

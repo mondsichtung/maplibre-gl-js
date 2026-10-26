@@ -13,7 +13,7 @@ import {EvaluationParameters} from '../style/evaluation_parameters.ts';
 import {polygonIntersectsBox} from '../util/intersection_tests.ts';
 import {PossiblyEvaluated} from '../style/properties.ts';
 import {FeatureIndexArray} from './array_types.g.ts';
-import {MLTVectorTile} from '../source/vector_tile_mlt.ts';
+import {decodeMLTTile} from '../source/vector_tile_mlt_loader.ts';
 import {Bounds} from '../geo/bounds.ts';
 import {VectorTile} from '@mapbox/vector-tile';
 
@@ -116,7 +116,7 @@ export class FeatureIndex {
         if (!this.vtLayers) {
             switch (this.encoding) {
                 case 'mlt':
-                    this.vtLayers = new MLTVectorTile(this.rawTileData).layers;
+                    this.vtLayers = decodeMLTTile(this.rawTileData).layers;
                     break;
                 case 'mvt':
                 default:

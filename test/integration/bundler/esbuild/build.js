@@ -23,7 +23,7 @@ await esbuild.build({
 
 mkdirSync('dist', {recursive: true});
 copyFileSync(workerSrc, 'dist/maplibre-gl-worker.mjs');
-// The worker imports the content-hashed shared chunk next to it.
-for (const file of readdirSync(distDir).filter((name) => /^maplibre-gl-shared-.+\.mjs$/.test(name))) {
+// The worker imports the content-hashed shared chunk next to it, and the MLT chunk on demand.
+for (const file of readdirSync(distDir).filter((name) => /^maplibre-gl-(shared|vector-tile-mlt)-.+\.mjs$/.test(name))) {
     copyFileSync(`${distDir}/${file}`, `dist/${file}`);
 }
