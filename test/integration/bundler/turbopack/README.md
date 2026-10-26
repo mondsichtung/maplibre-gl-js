@@ -3,7 +3,7 @@
 Minimal app exercising the ESM build under Turbopack. Turbopack ships as the default bundler in Next.js and is not practical to drive standalone, so this example is a Next.js app:
 
 - `import {Map} from 'maplibre-gl'` and `import 'maplibre-gl/dist/maplibre-gl.css'` resolve via the package's `exports` field, from a client component.
-- `scripts/copy-maplibre-worker.mjs` copies the pre-built worker and its content-hashed `maplibre-gl-shared-*.mjs` chunk into `public/maplibre/`, and `setWorkerUrl` points at the served path. The worker's import of the shared chunk resolves because both files are copied side-by-side.
+- `scripts/copy-maplibre-worker.mjs` copies the pre-built worker and its content-hashed chunks, `maplibre-gl-shared-*.mjs` and the on-demand `maplibre-gl-vector-tile-mlt-*.mjs`, into `public/maplibre/`, and `setWorkerUrl` points at the served path. The worker's imports of the chunks resolve because the files are copied side-by-side.
 
 The `new URL('maplibre-gl/dist/maplibre-gl-worker.mjs', import.meta.url)` form used by the webpack example does not work here. Turbopack emits the worker as a hashed asset without emitting the shared chunk it imports, so the worker 404s on its first import and the map requests no tiles. Serving both files from `public/` avoids that. Next's other bundler mode, `next build --webpack`, behaves the same way, so this is Next's asset handling rather than Turbopack's alone.
 

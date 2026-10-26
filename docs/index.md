@@ -101,6 +101,15 @@ Pick your setup:
     through Vite's worker pipeline, emitting a self-contained chunk. Dev mode
     works with either.
 
+    The worker loads the MLT decoder on demand, a dynamic import Vite 7 cannot
+    split in its default `iife` worker format, so Vite 7 also needs:
+
+    ```ts title="vite.config.ts"
+    export default defineConfig({
+        worker: {format: 'es'}
+    });
+    ```
+
     If your build uses SSR (TanStack Start, Astro, etc.) and Vite resolves the CommonJS entry on the server, also add:
 
     ```ts title="vite.config.ts"
@@ -139,9 +148,9 @@ Pick your setup:
         format: 'esm'
     });
 
-    // The worker imports the content-hashed shared chunk next to it.
+    // The worker imports the content-hashed shared chunk next to it, and the MLT chunk on demand.
     const dist = 'node_modules/maplibre-gl/dist';
-    for (const file of readdirSync(dist).filter((name) => name === 'maplibre-gl-worker.mjs' || /^maplibre-gl-shared-.+\.mjs$/.test(name))) {
+    for (const file of readdirSync(dist).filter((name) => name === 'maplibre-gl-worker.mjs' || /^maplibre-gl-(shared|vector-tile-mlt)-.+\.mjs$/.test(name))) {
         copyFileSync(`${dist}/${file}`, `dist/${file}`);
     }
     ```
@@ -167,7 +176,7 @@ Pick your setup:
             copy({
                 targets: [
                     {src: 'node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs', dest: 'dist'},
-                    {src: 'node_modules/maplibre-gl/dist/maplibre-gl-shared-*.mjs', dest: 'dist'}
+                    {src: 'node_modules/maplibre-gl/dist/maplibre-gl-{shared,vector-tile-mlt}-*.mjs', dest: 'dist'}
                 ]
             }),
             /* ... */
@@ -201,8 +210,8 @@ Pick your setup:
     const dest = path.join(process.cwd(), 'public', 'maplibre');
 
     mkdirSync(dest, {recursive: true});
-    const shared = readdirSync(dist).filter((name) => /^maplibre-gl-shared-.+\.mjs$/.test(name));
-    for (const file of ['maplibre-gl-worker.mjs', ...shared]) {
+    const chunks = readdirSync(dist).filter((name) => /^maplibre-gl-(shared|vector-tile-mlt)-.+\.mjs$/.test(name));
+    for (const file of ['maplibre-gl-worker.mjs', ...chunks]) {
         copyFileSync(path.join(dist, file), path.join(dest, file));
     }
     ```
@@ -227,8 +236,8 @@ Pick your setup:
     const map = new Map({/* … */});
     ```
 
-    The script copies the shared chunk too, not just the worker.
-    This is because the worker imports `maplibre-gl-shared-*.mjs` by relative path, so both have to land in the same directory.
+    The script copies the worker's chunks too, not just the worker.
+    The worker imports `maplibre-gl-shared-*.mjs` by relative path, and a source with `encoding: 'mlt'` loads `maplibre-gl-vector-tile-mlt-*.mjs` the same way, so all of them have to land in the same directory.
 
     The copy happens at build time, from `node_modules`, so it always matches the installed version.
     npm lifecycle prefixes match the exact script name, so `prebuild` and `predev` run before `build` and `dev`, but **not** before a custom script like `build:local` - add a matching `pre` hook for those if necessary.

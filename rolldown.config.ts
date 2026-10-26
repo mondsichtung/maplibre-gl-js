@@ -19,8 +19,9 @@ const dtsBundle: RolldownOptions = {
 
 /**
  * The main bundle and the worker are built together, so the code both of them run lands once in a
- * shared chunk. Its name carries a content hash: a worker cached from an older release imports the
- * shared chunk it was built with, never a newer one, see https://github.com/maplibre/maplibre-gl-js/issues/8621.
+ * shared chunk, and code loaded on demand, the MLT decoder, in a chunk of its own. Chunk names carry a
+ * content hash: a worker cached from an older release imports the chunks it was built with, never newer
+ * ones, see https://github.com/maplibre/maplibre-gl-js/issues/8621.
  */
 const bundleOptions: RolldownOptions = {
     platform: 'browser',
@@ -32,7 +33,9 @@ const bundleOptions: RolldownOptions = {
         banner,
         minify: production ? true : 'dce-only',
         entryFileNames: `[name]${outputPostfix}.mjs`,
-        chunkFileNames: `maplibre-gl-shared${outputPostfix}-[hash].mjs`,
+        chunkFileNames: (chunk) => chunk.isDynamicEntry
+            ? `maplibre-gl-${chunk.name.replaceAll('_', '-')}${outputPostfix}-[hash].mjs`
+            : `maplibre-gl-shared${outputPostfix}-[hash].mjs`,
     },
 };
 

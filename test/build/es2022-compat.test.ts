@@ -4,8 +4,8 @@ import {globSync} from 'glob';
 import {transformWithOxc} from 'vite';
 
 describe('ES2022 compatibility (https://github.com/maplibre/maplibre-gl-js/pull/7404)', () => {
-    const sharedChunks = globSync('dist/maplibre-gl-shared-*.mjs', {ignore: ['dist/maplibre-gl-shared-dev.mjs', 'dist/maplibre-gl-shared-dev-*.mjs']});
-    for (const file of ['dist/maplibre-gl.mjs', 'dist/maplibre-gl-worker.mjs', ...sharedChunks]) {
+    const chunks = globSync('dist/maplibre-gl-{shared,vector-tile-mlt}-*.mjs', {ignore: ['dist/*-dev.mjs', 'dist/*-dev-*.mjs']});
+    for (const file of ['dist/maplibre-gl.mjs', 'dist/maplibre-gl-worker.mjs', ...chunks]) {
         test(`${file} does not require ES2022+ downleveling helpers`, async () => {
             const bundle = fs.readFileSync(file, 'utf8');
 

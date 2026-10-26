@@ -7,6 +7,7 @@ import {ResourceType} from '../util/request_manager.ts';
 import {MessageType} from '../util/actor_messages.ts';
 import {isAbortError} from '../util/abort_error.ts';
 import {TileManager} from '../tile/tile_manager.ts';
+import {loadMLTDecoder} from './vector_tile_mlt_loader.ts';
 
 import type {Source} from './source.ts';
 import type {CanonicalTileID, OverscaledTileID} from '../tile/tile_id.ts';
@@ -251,7 +252,11 @@ export class VectorTileSource extends Evented<SourceEventType> implements Source
         tile.abortController = new AbortController();
         let data: WorkerTileResult | null;
         try {
-            data = await tile.actor.sendAsync({type: messageType, data: params}, tile.abortController);
+            // The main thread decodes the tile again for queries, so it needs the MLT decoder too.
+            [data] = await Promise.all([
+                tile.actor.sendAsync({type: messageType, data: params}, tile.abortController),
+                this.encoding === 'mlt' && loadMLTDecoder()
+            ]);
         } catch (err) {
             delete tile.abortController;
 
