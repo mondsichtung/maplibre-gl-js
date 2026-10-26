@@ -1,6 +1,7 @@
 import {describe, test, expect} from 'vitest';
 import fs from 'fs';
 import path from 'path';
+import {globSync} from 'glob';
 import zlib from 'zlib';
 import packageJson from '../../package.json' assert {type: 'json'};
 import bundleSizes from './bundle_size.json' assert {type: 'json'};
@@ -14,8 +15,11 @@ const RAW_DECREASE_QUOTA = 4096;
 const GZIP_INCREASE_QUOTA = 256;
 const GZIP_DECREASE_QUOTA = 1024;
 
-function measure(file: string): SizeRecord {
-    const buf = fs.readFileSync(file);
+/** Keys may be globs, for the shared chunk whose name carries a content hash; each must match one file. */
+function measure(pattern: string): SizeRecord {
+    const files = globSync(pattern, {ignore: ['dist/maplibre-gl-shared-dev.mjs', 'dist/maplibre-gl-shared-dev-*.mjs']});
+    expect(files, pattern).toHaveLength(1);
+    const buf = fs.readFileSync(files[0]);
     return {raw: buf.length, gzip: zlib.gzipSync(buf).length};
 }
 
